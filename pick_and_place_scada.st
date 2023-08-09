@@ -23,30 +23,14 @@ PROGRAM pick_and_place
     START_LIGHT : BOOL;
     RESET_LIGHT : BOOL;
     STOP_LIGHT : BOOL;
+    start_scada : BOOL;
+    reset_scada : BOOL;
+    stop_scada : BOOL;
     COUNTER : INT;
   END_VAR
   VAR
-    INPUT_STATE : INT := 0;
-    I_C_POINT : INT := 0;
-    OUTPUT_STATE : INT := 0;
-    INPUT_CHANNEL : ARRAY [0..9] OF BOOL;
-    OUTPUT_CHANNEL : ARRAY [0..4] OF BOOL;
     T1_DONE : BOOL;
     TIME_DELAY : TIME := t#3s;
-    IN_STATE_0 : ARRAY [0..9] OF BOOL := [0, 0, 0, 0, 0, 0, 0, 1, 1, 1];
-    IN_STATE_1 : ARRAY [0..9] OF BOOL := [1, 0, 0, 0, 0, 0, 0, 1, 1, 1];
-    IN_STATE_2 : ARRAY [0..9] OF BOOL := [1, 0, 0, 0, 0, 1, 1, 1, 1, 1];
-    IN_STATE_3 : ARRAY [0..9] OF BOOL := [0, 0, 0, 0, 0, 0, 1, 1, 1, 1];
-    IN_STATE_4 : ARRAY [0..9] OF BOOL := [0, 0, 0, 0, 1, 0, 1, 1, 1, 1];
-    IN_STATE_5 : ARRAY [0..9] OF BOOL := [0, 1, 0, 0, 1, 1, 1, 1, 1, 1];
-    IN_STATE_6 : ARRAY [0..9] OF BOOL := [0, 1, 0, 0, 1, 0, 0, 1, 1, 1];
-    OUT_STATE_0 : ARRAY [0..4] OF BOOL := [1, 1, 0, 0, 0];
-    OUT_STATE_1 : ARRAY [0..4] OF BOOL := [0, 1, 0, 1, 0];
-    OUT_STATE_2 : ARRAY [0..4] OF BOOL := [0, 1, 0, 0, 1];
-    OUT_STATE_3 : ARRAY [0..4] OF BOOL := [0, 0, 1, 0, 1];
-    OUT_STATE_4 : ARRAY [0..4] OF BOOL := [0, 0, 1, 1, 1];
-    OUT_STATE_5 : ARRAY [0..4] OF BOOL := [0, 0, 1, 0, 0];
-    OUT_STATE_6 : ARRAY [0..4] OF BOOL := [0, 1, 0, 0, 0];
   END_VAR
   VAR_EXTERNAL
     STEP_0 : BOOL;
@@ -79,10 +63,10 @@ PROGRAM pick_and_place
     _TMP_MOVE31_OUT : INT;
   END_VAR
 
-  START_LIGHT := AUTO AND EMERGENCY_STOP AND STOP AND (START OR START_LIGHT);
+  START_LIGHT := AUTO AND NOT(stop_scada) AND EMERGENCY_STOP AND STOP AND (START OR START_LIGHT OR start_scada);
   STOP_LIGHT := NOT(START_LIGHT);
-  RESET_LIGHT := RESET;
-  TP0(IN := RESET, PT := TIME_DELAY);
+  RESET_LIGHT := RESET OR reset_scada;
+  TP0(IN := RESET OR reset_scada, PT := TIME_DELAY);
   T1_DONE := TP0.Q;
   R_TRIG1(CLK := ITEM_AT_EXIT);
   CTU0(CU := R_TRIG1.Q, R := T1_DONE, PV := 32767);
@@ -156,7 +140,6 @@ PROGRAM pick_and_place_sfc
     R_TRIG0 : R_TRIG;
     F_TRIG0 : F_TRIG;
     F_TRIG1 : F_TRIG;
-    step_3_timer : BOOL;
     F_TRIG2 : F_TRIG;
     F_TRIG3 : F_TRIG;
     F_TRIG4 : F_TRIG;
@@ -238,7 +221,6 @@ PROGRAM pick_and_place_sfc
   STEP Step3:
     GRAB(N);
     EXIT_CONVEYOR(N);
-    step_3_timer(N);
     STEP_3(N);
   END_STEP
 
@@ -311,6 +293,9 @@ CONFIGURATION Config0
       START_LIGHT AT %QX2.0 : BOOL;
       RESET_LIGHT AT %QX2.1 : BOOL;
       STOP_LIGHT AT %QX2.2 : BOOL;
+      start_scada AT %QX2.3 : BOOL;
+      reset_scada AT %QX2.4 : BOOL;
+      stop_scada AT %QX2.5 : BOOL;
       COUNTER AT %QW0 : INT;
       STEP_LOCATION AT %QW1 : INT;
       STEP_0 : BOOL;
